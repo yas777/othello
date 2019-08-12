@@ -1,0 +1,37 @@
+#lang racket
+(require 2htdp/universe)
+(provide (all-defined-out))
+(define l '(8 1))
+(define (update-l l1)
+  (set! l l1))
+(define (add-world univ wrld)
+  (local ((define univ* (append univ (list wrld))))
+    (make-bundle univ*
+                 (cond ((= 1 (length univ*))
+                        (list (make-mail (first univ*) "waiting for other player....")))
+                       ((= 2 (length univ*))
+                        (list (make-mail (second univ*) (list l "waiting for other player's move..."))
+                              (make-mail (first univ*) "start")))
+                       ((= 3 (length univ*))
+                        (list (make-mail (first (reverse univ*)) "sry"))))
+                     (if (= 3 (length univ*))
+                         (list (first (reverse univ*)))
+                         null))))
+(define (switch univ wrld m)  
+  (local ((define univ* (append (rest univ) (list (first univ)))))
+    (make-bundle univ*
+                 (if (= 1 (length univ*))
+                     (list (make-mail (first univ*) "waiting for other player...."))
+                     (list (make-mail (first univ*) m)))
+                     '())))
+(define (disco-expr univ wrld)
+  (local ((define univ* (remove wrld univ)))
+    (make-bundle univ*
+                 (list (make-mail (first univ*) "other player is offline"))
+                 (list wrld))))
+                 
+(define (start-server)
+  (universe '() (on-new add-world) (on-msg switch) (on-disconnect disco-expr)))
+            ;(port 2)))
+(define (run-universe) (start-server))
+
